@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=65.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "realtime512"
+version = "0.1.0"
+description = "Real time processing of multi-electrode data."
+requires-python = ">=3.10"
+dependencies = [
+    "click",
+    "pyyaml",
+    "requests",
+    "numpy",
+    "scipy",
+    "flask",
+    "flask-cors",
+]
+
+[project.scripts]
+realtime512 = "realtime512.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["realtime512*"]
