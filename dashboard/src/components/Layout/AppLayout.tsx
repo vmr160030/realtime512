@@ -16,6 +16,7 @@ import {
   Dashboard as DashboardIcon,
   Folder as FolderIcon,
 } from '@mui/icons-material';
+import { navigateWithQuery } from '../../utils/navigation';
 
 const DRAWER_WIDTH = 240;
 
@@ -57,7 +58,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             <ListItemButton
               selected={isCurrentView(item.path)}
               onClick={() => {
-                navigate(item.path);
+                navigate(navigateWithQuery(item.path));
                 setMobileOpen(false);
               }}
             >

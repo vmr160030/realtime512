@@ -22,6 +22,7 @@ import {
 } from '@mui/icons-material';
 import { usePolling } from '../../hooks/usePolling';
 import { api } from '../../services/api';
+import { navigateWithQuery } from '../../utils/navigation';
 
 export function FileDetailView() {
   const { filename: encodedFilename } = useParams<{ filename: string }>();
@@ -65,7 +66,7 @@ export function FileDetailView() {
   if (!file) {
     return (
       <Box>
-        <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/files')} sx={{ mb: 2 }}>
+        <Button startIcon={<ArrowBackIcon />} onClick={() => navigate(navigateWithQuery('/files'))} sx={{ mb: 2 }}>
           Back to File Explorer
         </Button>
         <Alert severity="warning">
@@ -82,13 +83,13 @@ export function FileDetailView() {
   return (
     <Box>
       <Box display="flex" gap={2} mb={2} flexWrap="wrap">
-        <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/files')}>
+        <Button startIcon={<ArrowBackIcon />} onClick={() => navigate(navigateWithQuery('/files'))}>
           Back to File Explorer
         </Button>
         <Box display="flex" gap={1}>
           <Button
             startIcon={<NavigateBeforeIcon />}
-            onClick={() => previousFile && navigate(`/files/${encodeURIComponent(previousFile.filename)}`)}
+            onClick={() => previousFile && navigate(navigateWithQuery(`/files/${encodeURIComponent(previousFile.filename)}`))}
             disabled={!previousFile}
             variant="outlined"
           >
@@ -96,7 +97,7 @@ export function FileDetailView() {
           </Button>
           <Button
             endIcon={<NavigateNextIcon />}
-            onClick={() => nextFile && navigate(`/files/${encodeURIComponent(nextFile.filename)}`)}
+            onClick={() => nextFile && navigate(navigateWithQuery(`/files/${encodeURIComponent(nextFile.filename)}`))}
             disabled={!nextFile}
             variant="outlined"
           >

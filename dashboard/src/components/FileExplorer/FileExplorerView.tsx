@@ -18,6 +18,7 @@ import {
 } from '@mui/icons-material';
 import { usePolling } from '../../hooks/usePolling';
 import { api } from '../../services/api';
+import { navigateWithQuery } from '../../utils/navigation';
 
 export function FileExplorerView() {
   const navigate = useNavigate();
@@ -84,7 +85,7 @@ export function FileExplorerView() {
                   boxShadow: 3,
                 },
               }}
-              onClick={() => navigate(`/files/${encodeURIComponent(file.filename)}`)}
+              onClick={() => navigate(navigateWithQuery(`/files/${encodeURIComponent(file.filename)}`))}
             >
               <CardContent>
                 <Box display="flex" justifyContent="space-between" alignItems="flex-start" flexWrap="wrap" gap={2}>
