@@ -11,7 +11,6 @@ from .file_processors import (
     process_spike_stats,
     process_time_shifts,
     process_coarse_sorting,
-    process_templates,
     process_preview,
 )
 
@@ -110,12 +109,6 @@ def run_start():
         if process_coarse_sorting(
             bin_files, computed_dir, n_channels, sampling_frequency, electrode_coords, course_sorting_detect_threshold
         ):
-            something_processed = True
-
-        # Compute templates
-        if process_templates(
-            bin_files, computed_dir, n_channels, sampling_frequency, electrode_coords
-        ): 
             something_processed = True
 
         # Generate figpack preview
