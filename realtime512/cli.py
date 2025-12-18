@@ -17,7 +17,7 @@ def start():
     run_start()
 
 @main.command()
-@click.option("--host", default="127.0.0.1", help="Host to bind to (default: 127.0.0.1)")
+@click.option("--host", default="0.0.0.0", help="Host to bind to (default: 0.0.0.0)")
 @click.option("--port", default=5000, help="Port to bind to (default: 5000)")
 def serve(host, port):
     """Serve raw and computed data via HTTP API."""
