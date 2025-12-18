@@ -8,8 +8,8 @@ import {
   RenderParams,
   ZarrGroup,
 } from "./figpack-interface";
-import FPDashboard from "./views/Dashboard/FPDashboard";
 import FPMEAFiringRatesAndAmplitudes from "./views/MEAFiringRatesAndAmplitudes/FPMEAFiringRatesAndAmplitudes";
+import FPTemplatesView from "./views/TemplatesView/FPTemplatesView";
 
 // Declare global types for figpack extension system
 export {};
@@ -100,9 +100,9 @@ const registerExtension = () => {
   });
 
   registerFPViewComponent({
-    name: "realtime512.Dashboard",
+    name: "realtime512.TemplatesView",
     render: makeRenderFunction(
-      FPDashboard
+      FPTemplatesView
     ),
   });
 

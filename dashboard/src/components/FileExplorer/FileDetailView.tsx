@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -11,6 +11,8 @@ import {
   Button,
   Stack,
   Paper,
+  IconButton,
+  Snackbar,
 } from '@mui/material';
 import {
   CheckCircle as CheckIcon,
@@ -19,16 +21,22 @@ import {
   NavigateBefore as NavigateBeforeIcon,
   NavigateNext as NavigateNextIcon,
   OpenInNew as OpenInNewIcon,
+  ContentCopy as ContentCopyIcon,
 } from '@mui/icons-material';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { usePolling } from '../../hooks/usePolling';
 import { api } from '../../services/api';
 import { navigateWithQuery } from '../../utils/navigation';
+import instructionsTemplate from './python-instructions.py?raw';
 
 export function FileDetailView() {
   const { filename: encodedFilename } = useParams<{ filename: string }>();
   const navigate = useNavigate();
   const filename = encodedFilename ? decodeURIComponent(encodedFilename) : '';
   const fetchFiles = useCallback(() => api.getFiles(), []);
+  const fetchConfig = useCallback(() => api.getConfig(), []);
+  const [copySnackbarOpen, setCopySnackbarOpen] = useState(false);
 
   const {
     data: filesData,
@@ -36,21 +44,11 @@ export function FileDetailView() {
     isLoading: filesLoading,
   } = usePolling(fetchFiles, { interval: 5000 });
 
-  if (filesLoading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
-        <CircularProgress />
-      </Box>
-    );
-  }
-
-  if (filesError) {
-    return (
-      <Alert severity="error">
-        Error loading file data: {filesError.message}
-      </Alert>
-    );
-  }
+  const {
+    data: configData,
+    error: configError,
+    isLoading: configLoading,
+  } = usePolling(fetchConfig, { interval: 5000 });
 
   const file = filesData?.files.find(f => f.filename === filename);
 
@@ -62,6 +60,46 @@ export function FileDetailView() {
   const currentIndex = sortedFiles.findIndex(f => f.filename === filename);
   const previousFile = currentIndex > 0 ? sortedFiles[currentIndex - 1] : null;
   const nextFile = currentIndex >= 0 && currentIndex < sortedFiles.length - 1 ? sortedFiles[currentIndex + 1] : null;
+
+  // Replace template variables in markdown
+  const renderedInstructions = useMemo(() => {
+    if (!file || !configData) return '';
+    
+    return instructionsTemplate
+      .replace(/\{\{\s*filename\s*\}\}/g, file.filename)
+      .replace(/\{\{\s*num_channels\s*\}\}/g, String(configData.n_channels))
+      .replace(/\{\{\s*sampling_frequency\s*\}\}/g, String(configData.sampling_frequency))
+      .replace(/\{\{\s*num_frames\s*\}\}/g, String(file.num_frames || 0));
+  }, [file, configData]);
+
+  const getPreviewUrl = (fname: string) => {
+    return `http://localhost:5000/api/preview/${fname}/index.html?ext_dev_x=figpack-realtime512:http://localhost:5174/figpack_realtime512.js`;
+  };
+
+  const handleCopyCode = async () => {
+    try {
+      await navigator.clipboard.writeText(renderedInstructions);
+      setCopySnackbarOpen(true);
+    } catch (err) {
+      console.error('Failed to copy code:', err);
+    }
+  };
+
+  if (filesLoading || configLoading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (filesError || configError) {
+    return (
+      <Alert severity="error">
+        Error loading data: {filesError?.message || configError?.message}
+      </Alert>
+    );
+  }
 
   if (!file) {
     return (
@@ -75,10 +113,6 @@ export function FileDetailView() {
       </Box>
     );
   }
-
-  const getPreviewUrl = (fname: string) => {
-    return `http://localhost:5000/api/preview/${fname}/index.html?ext_dev_x=figpack-realtime512:http://localhost:5174/figpack_realtime512.js`;
-  };
 
   return (
     <Box>
@@ -185,7 +219,7 @@ export function FileDetailView() {
       </Card>
 
       {/* Preview */}
-      <Box>
+      <Box mb={3}>
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
           <Typography variant="h6">
             Preview
@@ -219,6 +253,58 @@ export function FileDetailView() {
           </Alert>
         )}
       </Box>
+
+      {/* Python Instructions */}
+      <Card>
+        <CardContent>
+          <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+            <Typography variant="h6">
+              Python Code
+            </Typography>
+            <IconButton 
+              onClick={handleCopyCode}
+              size="small"
+              color="primary"
+              title="Copy code to clipboard"
+            >
+              <ContentCopyIcon />
+            </IconButton>
+          </Box>
+          <Box
+            sx={{
+              maxHeight: '600px',
+              overflowY: 'auto',
+              '& pre': {
+                backgroundColor: '#f5f5f5',
+                padding: 2,
+                borderRadius: 1,
+                overflow: 'auto',
+                margin: 0,
+              },
+              '& code': {
+                fontFamily: 'monospace',
+                fontSize: '0.9em',
+              },
+              '& pre code': {
+                backgroundColor: 'transparent',
+                padding: 0,
+              },
+            }}
+          >
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {"```python\n" + renderedInstructions + "\n```"}
+            </ReactMarkdown>
+          </Box>
+        </CardContent>
+      </Card>
+
+      <Snackbar
+        open={copySnackbarOpen}
+        autoHideDuration={2000}
+        onClose={() => setCopySnackbarOpen(false)}
+        message="Code copied to clipboard"
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      />
     </Box>
   );
 }

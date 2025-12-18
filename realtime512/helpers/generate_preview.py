@@ -5,6 +5,7 @@ import numpy as np
 import figpack.views as vv
 from ..figpack_realtime512.MEAMovie import MEAMovie
 from ..figpack_realtime512.MEAFiringRatesAndAmplitudes import MEAFiringRatesAndAmplitudes
+from ..figpack_realtime512.TemplatesView import TemplatesView
 
 
 def generate_preview(
@@ -13,6 +14,7 @@ def generate_preview(
     shift_path: str,
     stats_path: str,
     high_activity_intervals: list,
+    templates_path: str,
     n_channels: int,
     sampling_frequency: float,
     electrode_coords: np.ndarray,
@@ -45,10 +47,20 @@ def generate_preview(
         mean_spike_amplitudes=mean_spike_amplitudes.reshape(1, -1)
     )
 
+    templates = np.load(templates_path)
+    templates_view = TemplatesView(
+        templates=templates,
+        electrode_coords=electrode_coords
+    )
+
     tab_items = [
         vv.TabLayoutItem(
             view=spike_stats,
             label="Spike Stats"
+        ),
+        vv.TabLayoutItem(
+            view=templates_view,
+            label="Templates"
         ),
         vv.TabLayoutItem(
             view=filt_movie,

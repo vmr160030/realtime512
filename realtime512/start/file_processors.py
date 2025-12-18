@@ -243,6 +243,7 @@ def process_preview(bin_files, computed_dir, n_channels, sampling_frequency, ele
         shift_path = os.path.join(computed_dir, "shifted", fname + ".shifted")
         high_activity_intervals_path = os.path.join(computed_dir, "high_activity", fname + ".high_activity.json")
         stats_path = os.path.join(computed_dir, "stats", fname + ".stats.json")
+        templates_path = os.path.join(computed_dir, "templates", fname + ".templates.npy")
         if not os.path.exists(os.path.join(computed_dir, "preview")):
             os.makedirs(os.path.join(computed_dir, "preview"))
         preview_path = os.path.join(computed_dir, "preview", fname + ".figpack")
@@ -256,6 +257,8 @@ def process_preview(bin_files, computed_dir, n_channels, sampling_frequency, ele
             continue  # High activity intervals do not exist yet
         if not os.path.exists(stats_path):
             continue  # Stats file does not exist yet
+        if not os.path.exists(templates_path):
+            continue  # Templates file does not exist yet
         with open(high_activity_intervals_path, "r") as f:
             high_activity_data = json.load(f)
         high_activity_intervals = [
@@ -267,6 +270,7 @@ def process_preview(bin_files, computed_dir, n_channels, sampling_frequency, ele
             shift_path=shift_path,
             high_activity_intervals=high_activity_intervals,
             stats_path=stats_path,
+            templates_path=templates_path,
             n_channels=n_channels,
             sampling_frequency=sampling_frequency,
             electrode_coords=electrode_coords,

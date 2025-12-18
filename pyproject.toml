@@ -16,6 +16,7 @@ dependencies = [
     "flask",
     "flask-cors",
     "figpack",
+    "figpack_spike_sorting",
     "scikit-learn",
 ]
 

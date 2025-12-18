@@ -1,19 +1,32 @@
 import React, { useEffect, useRef, useState } from "react";
-import { DashboardClient } from "./DashboardClient";
+import { TemplatesViewClient } from "./TemplatesViewClient";
 import { valueToColor } from "../MEAMovie/colormapUtils";
 import { getUnitColor } from "./unitColors";
 
 type Props = {
-  client: DashboardClient;
+  client: TemplatesViewClient;
   width: number;
   height: number;
   unitId: string;
+  brightness: number;
+  useGlobalScale: boolean;
+  globalMin?: number;
+  globalMax?: number;
 };
 
 const DEFAULT_COLORMAP = "grayscale";
 const PADDING = 10; // Padding inside the box for labels and spacing
 
-const TemplateView: React.FC<Props> = ({ client, width, height, unitId }) => {
+const TemplateView: React.FC<Props> = ({ 
+  client, 
+  width, 
+  height, 
+  unitId, 
+  brightness, 
+  useGlobalScale, 
+  globalMin, 
+  globalMax 
+}) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [templateData, setTemplateData] = useState<Float32Array | null>(null);
   const [electrodeRadius, setElectrodeRadius] = useState<number>(5);
@@ -47,11 +60,12 @@ const TemplateView: React.FC<Props> = ({ client, width, height, unitId }) => {
 
         setTemplateData(data as Float32Array);
 
-        // Calculate electrode radius based on minimum distance
+        // Get electrode coordinates and calculate electrode radius
+        const electrodeCoords = await client.getElectrodeCoords();
         const coords = new Float32Array(client.numChannels * 2);
         for (let i = 0; i < client.numChannels; i++) {
-          coords[i * 2] = client.electrodeCoords[i][0];
-          coords[i * 2 + 1] = client.electrodeCoords[i][1];
+          coords[i * 2] = electrodeCoords[i][0];
+          coords[i * 2 + 1] = electrodeCoords[i][1];
         }
         const minDist = calculateMinElectrodeDistance(coords);
         const radius = (minDist * 0.95) / 2;
@@ -70,6 +84,7 @@ const TemplateView: React.FC<Props> = ({ client, width, height, unitId }) => {
   // Render the canvas
   useEffect(() => {
     if (!canvasRef.current || !templateData) return;
+    if (useGlobalScale && (globalMin === undefined || globalMax === undefined)) return;
 
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
@@ -90,72 +105,91 @@ const TemplateView: React.FC<Props> = ({ client, width, height, unitId }) => {
     ctx.textAlign = "center";
     ctx.fillText(`Unit ${unitId}`, width / 2, 20);
 
-    // Calculate bounding box of electrodes
-    const numElectrodes = client.numChannels;
-    let minX = client.electrodeCoords[0][0];
-    let maxX = client.electrodeCoords[0][0];
-    let minY = client.electrodeCoords[0][1];
-    let maxY = client.electrodeCoords[0][1];
+    // Get electrode coordinates (load if needed)
+    const loadAndRender = async () => {
+      const electrodeCoords = await client.getElectrodeCoords();
 
-    for (let i = 0; i < numElectrodes; i++) {
-      const x = client.electrodeCoords[i][0];
-      const y = client.electrodeCoords[i][1];
-      if (x < minX) minX = x;
-      if (x > maxX) maxX = x;
-      if (y < minY) minY = y;
-      if (y > maxY) maxY = y;
-    }
+      // Calculate bounding box of electrodes
+      const numElectrodes = client.numChannels;
+      let minX = electrodeCoords[0][0];
+      let maxX = electrodeCoords[0][0];
+      let minY = electrodeCoords[0][1];
+      let maxY = electrodeCoords[0][1];
 
-    // Add internal padding
-    const dataWidth = maxX - minX;
-    const dataHeight = maxY - minY;
+      for (let i = 0; i < numElectrodes; i++) {
+        const x = electrodeCoords[i][0];
+        const y = electrodeCoords[i][1];
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+      }
 
-    // Calculate scale to fit canvas with padding
-    const scaleX = (canvasWidth) / dataWidth;
-    const scaleY = (canvasHeight) / dataHeight;
-    const scale = Math.max(0, Math.min(scaleX, scaleY));
+      // Add internal padding
+      const dataWidth = maxX - minX;
+      const dataHeight = maxY - minY;
 
-    // Calculate offset to center the electrodes
-    const offsetX =
-      PADDING + (canvasWidth - dataWidth * scale) / 2 - minX * scale;
-    const offsetY =
-      PADDING + 30 + (canvasHeight - dataHeight * scale) / 2 - minY * scale;
+      // Calculate scale to fit canvas with padding
+      const scaleX = (canvasWidth) / dataWidth;
+      const scaleY = (canvasHeight) / dataHeight;
+      const scale = Math.max(0, Math.min(scaleX, scaleY));
 
-    // Compute min and max from template data
-    let dataMin = templateData[0];
-    let dataMax = templateData[0];
-    for (let i = 1; i < templateData.length; i++) {
-      if (templateData[i] < dataMin) dataMin = templateData[i];
-      if (templateData[i] > dataMax) dataMax = templateData[i];
-    }
-    dataMin += (dataMax - dataMin) * 0.6;
-    // dataMax -= (dataMax - dataMin) * 0.3;
-    console.log('--- Template data min/max:', dataMin, dataMax);
+      // Calculate offset to center the electrodes
+      const offsetX =
+        PADDING + (canvasWidth - dataWidth * scale) / 2 - minX * scale;
+      const offsetY =
+        PADDING + 30 + (canvasHeight - dataHeight * scale) / 2 - minY * scale;
 
-    // Draw electrodes
-    for (let i = 0; i < numElectrodes; i++) {
-      const x = client.electrodeCoords[i][0] * scale + offsetX;
-      const y = client.electrodeCoords[i][1] * scale + offsetY;
-      const value = templateData[i];
+      // Compute min and max from template data or use global
+      let dataMin: number;
+      let dataMax: number;
+      
+      if (useGlobalScale && globalMin !== undefined && globalMax !== undefined) {
+        dataMin = globalMin;
+        dataMax = globalMax;
+      } else {
+        dataMin = templateData[0];
+        dataMax = templateData[0];
+        for (let i = 1; i < templateData.length; i++) {
+          if (templateData[i] < dataMin) dataMin = templateData[i];
+          if (templateData[i] > dataMax) dataMax = templateData[i];
+        }
+      }
+      
+      // brightness is between 0 and 100
+      // brightness scale should go from -1 (darken) to +1 (brighten)
+      let brightnessScale = (brightness - 50) / 50;
+      // brightNessScale = brightnessScale ^ (1/4)
+      brightnessScale = Math.sign(brightnessScale) * Math.pow(Math.abs(brightnessScale), 1/4);
+      dataMin += (dataMax - dataMin) * brightnessScale;
 
-      // Normalize value to [0, 1] range
-      const normalizedValue =
-        (dataMax - dataMin) > 0 ? (value - dataMin) / (dataMax - dataMin) : 0.5;
+      // Draw electrodes
+      for (let i = 0; i < numElectrodes; i++) {
+        const x = electrodeCoords[i][0] * scale + offsetX;
+        const y = electrodeCoords[i][1] * scale + offsetY;
+        const value = templateData[i];
 
-      // Invert because spikes are typically negative
-      let colorValue = 1 - normalizedValue;
-      colorValue = Math.min(1, Math.max(0, colorValue));
+        // Normalize value to [0, 1] range
+        const normalizedValue =
+          (dataMax - dataMin) > 0 ? (value - dataMin) / (dataMax - dataMin) : 0.5;
 
-      // Apply colormap
-      const color = valueToColor(colorValue, DEFAULT_COLORMAP);
+        // Invert because spikes are typically negative
+        let colorValue = 1 - normalizedValue;
+        colorValue = Math.min(1, Math.max(0, colorValue));
 
-      // Draw filled circle
-      ctx.fillStyle = color;
-      ctx.beginPath();
-      ctx.arc(x, y, electrodeRadius * scale, 0, 2 * Math.PI);
-      ctx.fill();
-    }
-  }, [templateData, electrodeRadius, width, height, client, unitId]);
+        // Apply colormap
+        const color = valueToColor(colorValue, DEFAULT_COLORMAP);
+
+        // Draw filled circle
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(x, y, electrodeRadius * scale, 0, 2 * Math.PI);
+        ctx.fill();
+      }
+    };
+
+    loadAndRender();
+  }, [templateData, electrodeRadius, width, height, client, unitId, brightness, useGlobalScale, globalMin, globalMax]);
 
   if (loading) {
     return (
