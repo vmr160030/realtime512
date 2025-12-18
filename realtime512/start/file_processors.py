@@ -10,6 +10,7 @@ from ..helpers.channel_spike_stats import compute_channel_spike_stats, detect_sp
 from ..helpers.data_utils import set_high_activity_to_zero
 from ..helpers.template_computation import compute_templates_from_frames
 from ..helpers.generate_preview import generate_preview
+from ..helpers.coarse_sorting import compute_coarse_sorting
 
 def process_filtering(bin_files, raw_dir, computed_dir, n_channels, filter_params, sampling_frequency):
     """Apply bandpass filtering to raw .bin files."""
@@ -186,6 +187,64 @@ def process_time_shifts(bin_files, computed_dir, n_channels, sampling_frequency,
             return True
     return False
 
+def process_coarse_sorting(bin_files, computed_dir, n_channels, sampling_frequency, electrode_coords, coarse_sorting_detect_threshold):
+    """Perform coarse spike sorting on shifted data."""
+    for fname in bin_files:
+        shift_path = os.path.join(computed_dir, "shifted", fname + ".shifted")
+        high_activity_path = os.path.join(computed_dir, "high_activity", fname + ".high_activity.json")
+        if not os.path.exists(os.path.join(computed_dir, "coarse_sorting")):
+            os.makedirs(os.path.join(computed_dir, "coarse_sorting"))
+        
+        # Create subdirectory for this file
+        coarse_sorting_dir = os.path.join(computed_dir, "coarse_sorting", fname)
+        if not os.path.exists(coarse_sorting_dir):
+            os.makedirs(coarse_sorting_dir)
+        
+        # Check if all output files exist
+        templates_path = os.path.join(coarse_sorting_dir, "templates.npy")
+        spike_times_path = os.path.join(coarse_sorting_dir, "spike_times.npy")
+        spike_labels_path = os.path.join(coarse_sorting_dir, "spike_labels.npy")
+        spike_amplitudes_path = os.path.join(coarse_sorting_dir, "spike_amplitudes.npy")
+        
+        if (os.path.exists(templates_path) and os.path.exists(spike_times_path) and 
+            os.path.exists(spike_labels_path) and os.path.exists(spike_amplitudes_path)):
+            continue  # Already processed
+        
+        if not os.path.exists(shift_path):
+            continue  # Shifted file does not exist yet
+        if not os.path.exists(high_activity_path):
+            continue  # High activity intervals do not exist yet
+        
+        print(f"Computing coarse sorting: {fname}")
+        shift_data = np.fromfile(shift_path, dtype=np.int16).reshape(-1, n_channels)
+        
+        with open(high_activity_path, "r") as f:
+            high_activity_data = json.load(f)
+        high_activity_intervals = [
+            (item['start_sec'], item['end_sec']) for item in high_activity_data['high_activity_intervals']
+        ]
+        
+        # Perform coarse sorting
+        templates, spike_times, spike_labels, spike_amplitudes = compute_coarse_sorting(
+            shifted_data=shift_data,
+            high_activity_intervals=high_activity_intervals,
+            sampling_frequency_hz=sampling_frequency,
+            electrode_coords=electrode_coords,
+            detect_threshold=coarse_sorting_detect_threshold,
+            num_nearest_neighbors=20,
+            num_clusters=100
+        )
+        
+        # Save outputs
+        np.save(templates_path, templates)
+        np.save(spike_times_path, spike_times)
+        np.save(spike_labels_path, spike_labels)
+        np.save(spike_amplitudes_path, spike_amplitudes)
+        
+        print(f"  Saved {len(spike_times)} spikes with {len(templates)} templates")
+        return True
+    return False
+
 def process_templates(bin_files, computed_dir, n_channels, sampling_frequency, electrode_coords):
     """Compute templates for filtered files."""
     for fname in bin_files:
@@ -244,6 +303,7 @@ def process_preview(bin_files, computed_dir, n_channels, sampling_frequency, ele
         high_activity_intervals_path = os.path.join(computed_dir, "high_activity", fname + ".high_activity.json")
         stats_path = os.path.join(computed_dir, "stats", fname + ".stats.json")
         templates_path = os.path.join(computed_dir, "templates", fname + ".templates.npy")
+        coarse_sorting_path = os.path.join(computed_dir, "coarse_sorting", fname)
         if not os.path.exists(os.path.join(computed_dir, "preview")):
             os.makedirs(os.path.join(computed_dir, "preview"))
         preview_path = os.path.join(computed_dir, "preview", fname + ".figpack")
@@ -259,6 +319,8 @@ def process_preview(bin_files, computed_dir, n_channels, sampling_frequency, ele
             continue  # Stats file does not exist yet
         if not os.path.exists(templates_path):
             continue  # Templates file does not exist yet
+        if not os.path.exists(coarse_sorting_path):
+            continue  # Coarse sorting does not exist yet
         with open(high_activity_intervals_path, "r") as f:
             high_activity_data = json.load(f)
         high_activity_intervals = [
@@ -270,7 +332,7 @@ def process_preview(bin_files, computed_dir, n_channels, sampling_frequency, ele
             shift_path=shift_path,
             high_activity_intervals=high_activity_intervals,
             stats_path=stats_path,
-            templates_path=templates_path,
+            coarse_sorting_path=coarse_sorting_path,
             n_channels=n_channels,
             sampling_frequency=sampling_frequency,
             electrode_coords=electrode_coords,

@@ -11,7 +11,8 @@ def create_config_file():
             'order': 4
         },
         'detect_threshold_for_spike_stats': -40,
-        'high_activity_threshold': 3
+        'high_activity_threshold': 3,
+        'coarse_sorting_detect_threshold': -80
     }
     
     # Get sampling frequency from user
@@ -85,5 +86,10 @@ def load_and_validate_config(config_path):
     assert high_activity_threshold is not None, "high_activity_threshold not found in config file."
     assert isinstance(high_activity_threshold, (int, float)), "high_activity_threshold must be numeric."
     assert high_activity_threshold >= 0, "high_activity_threshold must be non-negative."
+
+    coarse_sorting_detect_threshold = config.get("coarse_sorting_detect_threshold")
+    assert coarse_sorting_detect_threshold is not None, "coarse_sorting_detect_threshold not found in config file."
+    assert isinstance(coarse_sorting_detect_threshold, (int, float)), "coarse_sorting_detect_threshold must be numeric."
+    assert coarse_sorting_detect_threshold < 0, "coarse_sorting_detect_threshold must be negative."
 
     return config

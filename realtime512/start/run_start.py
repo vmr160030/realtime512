@@ -10,6 +10,7 @@ from .file_processors import (
     process_high_activity_intervals,
     process_spike_stats,
     process_time_shifts,
+    process_coarse_sorting,
     process_templates,
     process_preview,
 )
@@ -30,6 +31,7 @@ def run_start():
     n_channels = config['n_channels']
     detect_threshold_for_spike_stats = config['detect_threshold_for_spike_stats']
     high_activity_threshold = config['high_activity_threshold']
+    course_sorting_detect_threshold = config.get('coarse_sorting_detect_threshold')
 
     # Download simulated data if configured
     download_simulated_data()
@@ -101,6 +103,12 @@ def run_start():
         if process_time_shifts(
             bin_files, computed_dir, n_channels, sampling_frequency,
             c_x, c_y, electrode_coords
+        ):
+            something_processed = True
+
+        # Perform coarse sorting
+        if process_coarse_sorting(
+            bin_files, computed_dir, n_channels, sampling_frequency, electrode_coords, course_sorting_detect_threshold
         ):
             something_processed = True
 

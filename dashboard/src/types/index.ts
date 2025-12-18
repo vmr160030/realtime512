@@ -15,6 +15,7 @@ export interface FileInfo {
   filename: string;
   has_filt: boolean;
   has_shifted: boolean;
+  has_coarse_sorting: boolean;
   has_templates: boolean;
   has_high_activity: boolean;
   has_stats: boolean;

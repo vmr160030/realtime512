@@ -15,7 +15,10 @@ assert len(electrode_coords) == num_channels
 raw_path = f"{experiment_dir}/raw/{{ filename }}"
 filt_path = f"{experiment_dir}/computed/filt/{{ filename }}.filt"
 shifted_path = f"{experiment_dir}/computed/shifted/{{ filename }}.shifted"
-templates_path = f"{experiment_dir}/computed/templates/{{ filename }}.templates.npy"
+coarse_templates_path = f"{experiment_dir}/computed/coarse_sorting/{{ filename }}/templates.npy"
+coarse_spike_times_path = f"{experiment_dir}/computed/coarse_sorting/{{ filename }}/spike_times.npy"
+coarse_spike_labels_path = f"{experiment_dir}/computed/coarse_sorting/{{ filename }}/spike_labels.npy"
+coarse_spike_amplitudes_path = f"{experiment_dir}/computed/coarse_sorting/{{ filename }}/spike_amplitudes.npy"
 
 # Load filtered data
 filt = np.fromfile(filt_path, dtype=np.int16).reshape(-1, num_channels)

@@ -32,10 +32,20 @@ def get_files_handler():
     
     files_info = []
     for fname in sorted(bin_files):
+        # Check coarse sorting - need all 4 files to exist
+        coarse_sorting_dir = os.path.join(computed_dir, "coarse_sorting", fname)
+        has_coarse_sorting = (
+            os.path.exists(os.path.join(coarse_sorting_dir, "templates.npy")) and
+            os.path.exists(os.path.join(coarse_sorting_dir, "spike_times.npy")) and
+            os.path.exists(os.path.join(coarse_sorting_dir, "spike_labels.npy")) and
+            os.path.exists(os.path.join(coarse_sorting_dir, "spike_amplitudes.npy"))
+        )
+        
         file_info = {
             "filename": fname,
             "has_filt": os.path.exists(os.path.join(computed_dir, "filt", fname + ".filt")),
             "has_shifted": os.path.exists(os.path.join(computed_dir, "shifted", fname + ".shifted")),
+            "has_coarse_sorting": has_coarse_sorting,
             "has_templates": os.path.exists(os.path.join(computed_dir, "templates", fname + ".templates.npy")),
             "has_high_activity": os.path.exists(os.path.join(computed_dir, "high_activity", fname + ".high_activity.json")),
             "has_stats": os.path.exists(os.path.join(computed_dir, "stats", fname + ".stats.json")),

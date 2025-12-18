@@ -116,4 +116,7 @@ class RealtimeAPI {
 
 // Initialize API with custom URL from query parameter if provided, otherwise use default
 const customServerUrl = getServerUrlFromQuery();
-export const api = new RealtimeAPI(customServerUrl || API_BASE_URL);
+export const getApiUrl = () => {
+  return customServerUrl || API_BASE_URL;
+};
+export const api = new RealtimeAPI(getApiUrl());

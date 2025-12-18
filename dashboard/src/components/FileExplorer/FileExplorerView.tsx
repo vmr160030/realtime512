@@ -131,6 +131,12 @@ export function FileExplorerView() {
                       />
                       <Chip
                         size="small"
+                        label="Coarse Sorting"
+                        color={file.has_coarse_sorting ? 'success' : 'default'}
+                        icon={file.has_coarse_sorting ? <CheckIcon /> : <ErrorIcon />}
+                      />
+                      <Chip
+                        size="small"
                         label="Templates"
                         color={file.has_templates ? 'success' : 'default'}
                         icon={file.has_templates ? <CheckIcon /> : <ErrorIcon />}

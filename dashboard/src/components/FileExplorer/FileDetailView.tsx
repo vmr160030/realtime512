@@ -26,7 +26,7 @@ import {
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { usePolling } from '../../hooks/usePolling';
-import { api } from '../../services/api';
+import { api, getApiUrl } from '../../services/api';
 import { navigateWithQuery } from '../../utils/navigation';
 import instructionsTemplate from './python-instructions.py?raw';
 
@@ -73,7 +73,8 @@ export function FileDetailView() {
   }, [file, configData]);
 
   const getPreviewUrl = (fname: string) => {
-    return `http://localhost:5000/api/preview/${fname}/index.html?ext_dev_x=figpack-realtime512:http://localhost:5174/figpack_realtime512.js`;
+    const apiUrl = getApiUrl();
+    return `${apiUrl}/preview/${fname}/index.html?ext_dev_x=figpack-realtime512:http://localhost:5174/figpack_realtime512.js`;
   };
 
   const handleCopyCode = async () => {
@@ -187,6 +188,12 @@ export function FileDetailView() {
                   label="Shifted"
                   color={file.has_shifted ? 'success' : 'default'}
                   icon={file.has_shifted ? <CheckIcon /> : <ErrorIcon />}
+                />
+                <Chip
+                  size="small"
+                  label="Coarse Sorting"
+                  color={file.has_coarse_sorting ? 'success' : 'default'}
+                  icon={file.has_coarse_sorting ? <CheckIcon /> : <ErrorIcon />}
                 />
                 <Chip
                   size="small"
