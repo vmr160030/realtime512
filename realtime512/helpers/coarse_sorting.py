@@ -173,6 +173,10 @@ def compute_coarse_sorting(
     
     # Extract spike frames
     frames = shifted_data_low_activity[spike_inds, :].astype(np.float32)
+
+    # tmpfile_path = '/tmp/coarse_sorting_debug_frames.npy'
+    # np.save(tmpfile_path, frames)
+    # print(f'Saved extracted frames to {tmpfile_path} for debugging.')
     
     # # Find nearest neighbors
     # print(f'Finding nearest neighbors for {frames.shape[0]} frames...')
@@ -189,14 +193,22 @@ def compute_coarse_sorting(
     # labels = cluster_kmeans(denoised_frames, num_clusters=n_clusters)
     # num_clusters_found = np.max(labels)
 
-    from isosplit import isosplit
-    labels = isosplit(
-        frames.astype(np.float32),
-        initial_k=300,
-        separation_threshold=3,
-        use_lda_for_merge_test=False
-    )
-    num_clusters_found = np.max(labels)
+    use_isosplit = True
+    if use_isosplit:
+        from isosplit import isosplit
+        labels = isosplit(
+            frames.astype(np.float32),
+            initial_k=600,
+            dip_threshold=2,
+            use_lda_for_merge_test=False
+        )
+        num_clusters_found = np.max(labels)
+    else:
+        # use k-means directly on frames
+        n_clusters = 70 # hard-coded for now
+        print(f'Clustering into {n_clusters} clusters using k-means...')
+        labels = cluster_kmeans(frames, num_clusters=n_clusters)
+        num_clusters_found = np.max(labels)
     
     # Compute cluster templates
     templates = np.zeros((num_clusters_found, num_channels), dtype=np.float32)
