@@ -53,14 +53,16 @@ This starts a Flask server at `http://localhost:5000` that serves processed data
 
 ### 4. Launch the Web Dashboard
 
-In another terminal, start the dashboard:
+Open your browser to: https://realtime512-dashboard.vercel.app/
+
+Or to run it locally, in another terminal, start the dashboard:
 
 ```bash
 cd dashboard
 npm run dev
 ```
 
-Open your browser to `http://localhost:5173` to view the real-time dashboard.
+If running locally, open your browser to `http://localhost:5173` to view the real-time dashboard.
 
 ## Dashboard Features
 
