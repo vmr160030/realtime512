@@ -31,6 +31,18 @@ def create_config_file():
         n_channels = int(n_channels)
     default_config['n_channels'] = n_channels
 
+    # Ask about acquisition mode
+    use_acq = input("Use acquisition folder for rechunking? (y/n) [default: n]: ")
+    if use_acq.strip().lower() == 'y':
+        default_config['use_acquisition_folder'] = True
+        raw_chunk = input("Enter raw chunk duration in seconds [default: 10]: ")
+        if raw_chunk.strip() == "":
+            default_config['raw_chunk_duration_sec'] = 10.0
+        else:
+            default_config['raw_chunk_duration_sec'] = float(raw_chunk)
+    else:
+        default_config['use_acquisition_folder'] = False
+
     with open("realtime512.yaml", "w") as f:
         yaml.dump(default_config, f)
 

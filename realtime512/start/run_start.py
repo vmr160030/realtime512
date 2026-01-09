@@ -3,6 +3,7 @@ import time
 
 from .config_utils import check_or_create_config, load_and_validate_config
 from .file_setup import download_simulated_data, load_electrode_coords, setup_directories
+from .acquisition_processor import AcquisitionProcessor
 from .file_processors import (
     process_filtering,
     estimate_shift_coefficients,
@@ -32,9 +33,11 @@ def run_start():
     detect_threshold_for_spike_stats = config['detect_threshold_for_spike_stats']
     high_activity_threshold = config['high_activity_threshold']
     course_sorting_detect_threshold = config.get('coarse_sorting_detect_threshold')
+    use_acquisition_folder = config.get('use_acquisition_folder', False)
+    raw_chunk_duration_sec = config.get('raw_chunk_duration_sec', 10.0)
 
     # Download simulated data if configured
-    download_simulated_data()
+    download_simulated_data(use_acquisition_folder)
     
     # Load electrode coordinates
     electrode_coords = load_electrode_coords(n_channels)
@@ -42,18 +45,38 @@ def run_start():
         return
 
     # Setup directories
-    raw_dir, computed_dir = setup_directories()
+    acquisition_dir, raw_dir, computed_dir = setup_directories(use_acquisition_folder)
 
-    # Wait for at least one file of type .bin to appear in raw/
+    # Create acquisition processor if using acquisition folder
+    acquisition_processor = None
+    if use_acquisition_folder:
+        acquisition_processor = AcquisitionProcessor(
+            acquisition_dir=acquisition_dir,
+            raw_dir=raw_dir,
+            computed_dir=computed_dir,
+            n_channels=n_channels,
+            sampling_frequency=sampling_frequency,
+            chunk_duration_sec=raw_chunk_duration_sec
+        )
+        print(f"Acquisition mode enabled: rechunking to {raw_chunk_duration_sec}s chunks")
+
+    # Wait for at least one file of type .bin to appear
+    wait_dir = acquisition_dir if use_acquisition_folder else raw_dir
+    wait_dir_name = "acquisition" if use_acquisition_folder else "raw"
     while True:
-        if any(fname.endswith(".bin") for fname in os.listdir(raw_dir)):
+        if any(fname.endswith(".bin") for fname in os.listdir(wait_dir)):
             break
-        print("Waiting for .bin file to appear in raw/ directory...")
-        time.sleep(2)
+        print(f"Waiting for .bin file to appear in {wait_dir_name}/ directory...")
+        time.sleep(5)
     
     # Main processing loop
     up_to_date_has_been_printed = False
     while True:
+        # Process acquisition files to raw if enabled
+        if acquisition_processor is not None:
+            if acquisition_processor.process_acquisition_files():
+                up_to_date_has_been_printed = False
+
         # Get list of all .bin files in raw/
         bin_files = [
             fname for fname in os.listdir(raw_dir) if fname.endswith(".bin")

@@ -2,7 +2,7 @@ import os
 import requests
 import yaml
 
-def download_simulated_data():
+def download_simulated_data(use_acquisition_folder: bool):
     """Download simulated raw data and electrode coordinates if simulate_raw.yaml exists."""
     simulate_config_path = os.path.join(os.getcwd(), "simulate_raw.yaml")
     if not os.path.exists(simulate_config_path):
@@ -23,13 +23,16 @@ def download_simulated_data():
             print(f"Electrode coordinates file {coords_filepath} already exists. Skipping download.")
     
     raw_data_urls = simulate_config.get("raw_data_urls", [])
+    # Download to acquisition/ if using acquisition mode, otherwise to raw/
+    target_dir_name = "acquisition" if use_acquisition_folder else "raw"
+    target_dir = os.path.join(os.getcwd(), target_dir_name)
+    if not os.path.exists(target_dir):
+        os.makedirs(target_dir)
+    
     for i in range(len(raw_data_urls)):
         url = raw_data_urls[i]
         filename = f"simulated_{i+1:04d}.bin"
-        raw_dir = os.path.join(os.getcwd(), "raw")
-        if not os.path.exists(raw_dir):
-            os.makedirs(raw_dir)
-        filepath = os.path.join(raw_dir, filename)
+        filepath = os.path.join(target_dir, filename)
         if not os.path.exists(filepath):
             print(f"Downloading simulated raw data from {url} to {filepath}...")
             response = requests.get(url)
@@ -67,12 +70,28 @@ def load_electrode_coords(n_channels):
     print(f"Read {len(electrode_coords)} electrode coordinates.")
     return electrode_coords
 
-def setup_directories():
-    """Create raw/ and computed/ directories if they don't exist."""
+def setup_directories(use_acquisition_folder: bool):
+    """Create necessary directories based on configuration.
+    
+    If use_acquisition_folder is True: creates acquisition/, raw/, and computed/
+    If use_acquisition_folder is False: creates only raw/ and computed/
+    """
+    acquisition_dir = None
+    if use_acquisition_folder:
+        acquisition_dir = os.path.join(os.getcwd(), "acquisition")
+        if not os.path.exists(acquisition_dir):
+            os.makedirs(acquisition_dir)
+            print("Created acquisition/ directory for incoming acquisition data.")
+        else:
+            print("Found existing acquisition/ directory.")
+    
     raw_dir = os.path.join(os.getcwd(), "raw")
     if not os.path.exists(raw_dir):
         os.makedirs(raw_dir)
-        print("Created raw/ directory for incoming data files.")
+        if use_acquisition_folder:
+            print("Created raw/ directory for rechunked data files.")
+        else:
+            print("Created raw/ directory for incoming data files.")
     else:
         print("Found existing raw/ directory.")
     
@@ -83,4 +102,4 @@ def setup_directories():
     else:
         print("Found existing computed/ directory.")
     
-    return raw_dir, computed_dir
+    return acquisition_dir, raw_dir, computed_dir

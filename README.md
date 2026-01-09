@@ -28,17 +28,21 @@ cd my_experiment
 realtime512 start
 ```
 
-This will create a `realtime512.yaml` configuration file.
+When you run `realtime512 start` in an empty directory, it will:
+- Prompt you for configuration options (sampling frequency, number of channels, acquisition mode)
+- Create a `realtime512.yaml` configuration file
+- Create necessary directories (`acquisition/`, `raw/`, and `computed/`)
+- Wait for data files to appear
+
+**Important:** Before processing can begin, you also need to provide an `electrode_coords.txt` file with X Y coordinates for each electrode (one pair per line). See the [Configuration](#configuration) section for details.
 
 ### 2. Start Real-Time Processing
 
-In your experiment directory, start the processing pipeline:
+Once configured with `realtime512.yaml` and `electrode_coords.txt` in place, the processing pipeline will automatically:
 
-```bash
-realtime512 start
-```
+**Acquisition Mode (recommended):** When configured with `use_acquisition_folder: true`, the system monitors the `acquisition/` directory for incoming data files from your acquisition system. These variable-sized chunks are automatically rechunked into fixed-duration files in `raw/` (configured via `raw_chunk_duration_sec`) before processing.
 
-This monitors the `raw/` directory for `.bin` files and processes them automatically.
+**Direct Mode:** When `use_acquisition_folder: false`, the system monitors the `raw/` directory directly for `.bin` files and processes them automatically.
 
 ### 3. Start the API Server
 
@@ -91,13 +95,46 @@ The processing pipeline performs the following steps:
 Edit `realtime512.yaml` in your experiment directory:
 
 ```yaml
+# Basic settings
+sampling_frequency: 20000
+n_channels: 512
+
+# Acquisition mode (recommended)
+use_acquisition_folder: true   # Enable acquisition rechunking
+raw_chunk_duration_sec: 10     # Duration in seconds for each processed chunk
+
+# Filter settings
 filter_params:
   lowcut: 300
   highcut: 4000
   order: 4
-sampling_frequency: 20000
-n_channels: 512
+
+# Detection thresholds
 detect_threshold_for_spike_stats: -40
+high_activity_threshold: 3
+coarse_sorting_detect_threshold: -80
+```
+
+### Experiment Directory Structure
+
+With acquisition mode enabled:
+
+```
+my_experiment/
+├── realtime512.yaml          # Configuration
+├── electrode_coords.txt      # Electrode coordinates
+├── acquisition/              # Incoming data from acquisition system
+│   ├── chunk_0001.bin       # Variable-sized chunks
+│   └── ...
+├── raw/                      # Fixed-duration rechunked files
+│   ├── raw_0001.bin         # 10-second chunks (or as configured)
+│   └── ...
+├── computed/                 # Processed outputs
+│   ├── filt/                # Filtered data
+│   ├── shifted/             # Time-shifted data
+│   ├── coarse_sorting/      # Spike sorting results
+│   └── ...
+└── focus_units.json         # Tracked units
 ```
 
 ## API Endpoints
