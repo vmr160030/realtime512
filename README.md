@@ -2,6 +2,25 @@
 
 Real-time processing of multi-electrode array recordings during acquisition.
 
+## Prerequisites
+
+Before installing realtime512, ensure you have the following installed on your system:
+
+- **Python** >= 3.10
+- **Node.js** >= 18 (required for building UI components)
+- **npm** (usually comes with Node.js)
+
+### Installing Node.js
+
+Download and install Node.js from [https://nodejs.org](https://nodejs.org). We recommend using the LTS (Long Term Support) version.
+
+To verify your installation:
+
+```bash
+node --version  # Should show v18.x.x or higher
+npm --version   # Should show npm version
+```
+
 ## Overview
 
 This package provides tools for real-time processing and monitoring of multi-electrode array (MEA) data. It consists of two main components:

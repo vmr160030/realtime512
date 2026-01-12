@@ -1,23 +1,43 @@
 import os
+import sys
 import time
 
+from .build_utils import build_ui_components, BuildError
 from .config_utils import check_or_create_config, load_and_validate_config
 from .file_setup import download_simulated_data, load_electrode_coords, setup_directories
 from .acquisition_processor import AcquisitionProcessor
-from .file_processors import (
-    process_filtering,
-    estimate_shift_coefficients,
-    load_shift_coefficients,
-    process_high_activity_intervals,
-    process_spike_stats,
-    process_time_shifts,
-    process_coarse_sorting,
-    process_unit_matching,
-    process_preview,
-)
 
 def run_start():
     """Main entry point for realtime512 processing."""
+    # Build UI components first
+    print("=" * 60)
+    print("Building UI components...")
+    print("=" * 60)
+    try:
+        build_ui_components()
+        print("=" * 60)
+        print()
+    except BuildError as e:
+        print(f"\n❌ Error: {e}", file=sys.stderr)
+        print("\nUI build failed. Cannot continue.", file=sys.stderr)
+        sys.exit(1)
+    except Exception as e:
+        print(f"\n❌ Unexpected error during UI build: {e}", file=sys.stderr)
+        sys.exit(1)
+    
+    # Import these after building UI
+    from .file_processors import (
+        process_filtering,
+        estimate_shift_coefficients,
+        load_shift_coefficients,
+        process_high_activity_intervals,
+        process_spike_stats,
+        process_time_shifts,
+        process_coarse_sorting,
+        process_unit_matching,
+        process_preview,
+    )
+    
     # Check or create configuration file
     config_path = check_or_create_config()
     if config_path is None:
